@@ -36,17 +36,17 @@ class Agent:
         return self.run_episode()
 
     def get_return(self, trajectory):
-        return sum([self.env.get_reward(state) for state in trajectory])
+        return sum([self.env.get_reward(state) for _, state in enumerate(trajectory)])
 
     def get_average_gain(self, episode_count=50):
         return np.mean(
             [self.get_return(self.get_trajectory()) for _ in range(episode_count)]
         )
 
-    def hill_search(self, trial_count=300):
+    def hill_search(self, trial_count=500):
         gains = [self.get_average_gain()]
         max_gain = gains[-1]
-        for _ in range(trial_count):
+        for i in range(trial_count):
             cur_theta = self.theta
             std_dev_matrix = self.sigma * np.eye(*self.theta.shape)
             new_theta = np.random.multivariate_normal(self.theta, std_dev_matrix)
@@ -57,7 +57,7 @@ class Agent:
                 self.theta = cur_theta
             elif new_gain > max_gain:
                 max_gain = new_gain
-            print(max_gain)
+            print(i, max_gain)
         return gains
 
     def value_iteration(self, gamma=0.9, threshold=0.000001):
