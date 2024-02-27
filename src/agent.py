@@ -8,10 +8,6 @@ class Agent:
         self.position = (0, 0)
         self.theta = np.random.normal(0, 1, (25 * 4))
 
-    """
-    This method resets the agent's position to the initial position (0, 0)
-    """
-
     def reset(self):
         self.position = (0, 0)
 
@@ -38,27 +34,49 @@ class Agent:
     def get_return(self, trajectory):
         return sum([self.env.get_reward(state) for _, state in enumerate(trajectory)])
 
-    def get_average_gain(self, episode_count=50):
+    def get_average_gain(self, episode_count=20):
         return np.mean(
             [self.get_return(self.get_trajectory()) for _ in range(episode_count)]
         )
 
-    def hill_search(self, trial_count=500):
-        gains = [self.get_average_gain()]
-        max_gain = gains[-1]
-        for i in range(trial_count):
+    def get_average_gain_per_episode(self, episode_count=20):
+        return [self.get_return(self.get_trajectory()) for _ in range(episode_count)]
+
+    # def hill_search(self, trial_count=300):
+    #     gains = [self.get_average_gain()]
+    #     max_gain = gains[-1]
+    #     for i in range(trial_count):
+    #         cur_theta = self.theta
+    #         std_dev_matrix = self.sigma * np.eye(*self.theta.shape)
+    #         new_theta = np.random.multivariate_normal(self.theta, std_dev_matrix)
+    #         self.theta = new_theta
+    #         new_gain = self.get_average_gain()
+    #         gains.append(new_gain)
+    #         if new_gain < max_gain:
+    #             self.theta = cur_theta
+    #         elif new_gain > max_gain:
+    #             max_gain = new_gain
+    #         print("Trial", i, "Gain", new_gain, "Max Gain", max_gain)
+    #     return gains
+
+    def hill_search(self, trial_count=300, epsilon=0.0001):
+        gain_per_episode_matrix = [self.get_average_gain_per_episode()]
+        max_gain = np.mean(gain_per_episode_matrix[-1])
+        for trial in range(trial_count):
             cur_theta = self.theta
             std_dev_matrix = self.sigma * np.eye(*self.theta.shape)
             new_theta = np.random.multivariate_normal(self.theta, std_dev_matrix)
             self.theta = new_theta
-            new_gain = self.get_average_gain()
-            gains.append(new_gain)
+            new_gain_per_episode = self.get_average_gain_per_episode()
+            gain_per_episode_matrix.append(new_gain_per_episode)
+            new_gain = np.mean(new_gain_per_episode)
             if new_gain < max_gain:
                 self.theta = cur_theta
             elif new_gain > max_gain:
                 max_gain = new_gain
-            print(i, max_gain)
-        return gains
+            print("Trial", trial, "Gain", new_gain, "Max Gain", max_gain)
+        average_gains_per_trial = np.mean(gain_per_episode_matrix, axis=1)
+        return average_gains_per_trial
 
     def value_iteration(self, gamma=0.9, threshold=0.000001):
         # initialize V(s) with some random values but V(terminals) = 0
