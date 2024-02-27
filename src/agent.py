@@ -1,4 +1,5 @@
 import numpy as np
+from console_progressbar import ProgressBar
 
 
 class Agent:
@@ -23,6 +24,8 @@ class Agent:
             action = self.env.get_action(self.position, self.sigma, self.theta)
             self.position = self.env.step(self.position, action)
             trajectory.append(self.position)
+            if len(trajectory) > 1000:
+                break
         return trajectory
 
     def get_trajectory(self, policy=None):
@@ -60,6 +63,9 @@ class Agent:
     #     return gains
 
     def hill_search(self, trial_count=300, epsilon=0.0001):
+        pb = ProgressBar(
+            total=trial_count, prefix="Progress", suffix="Complete", length=50
+        )
         gain_per_episode_matrix = [self.get_average_gain_per_episode()]
         max_gain = np.mean(gain_per_episode_matrix[-1])
         for trial in range(trial_count):
@@ -74,9 +80,10 @@ class Agent:
                 self.theta = cur_theta
             elif new_gain > max_gain:
                 max_gain = new_gain
-            print("Trial", trial, "Gain", new_gain, "Max Gain", max_gain)
+            pb.print_progress_bar(trial + 1)
         average_gains_per_trial = np.mean(gain_per_episode_matrix, axis=1)
-        return average_gains_per_trial
+        standard_deviation_gains_per_trial = np.std(gain_per_episode_matrix, axis=1)
+        return [average_gains_per_trial, standard_deviation_gains_per_trial]
 
     def value_iteration(self, gamma=0.9, threshold=0.000001):
         # initialize V(s) with some random values but V(terminals) = 0
