@@ -42,25 +42,13 @@ class Agent:
             [self.get_return(self.get_trajectory()) for _ in range(episode_count)]
         )
 
-    def get_average_gain_per_episode(self, episode_count=20):
+    def get_average_gain_per_episode(self, episode_count=50, policy=None):
+        if policy != None:
+            return [
+                self.get_return(self.get_trajectory(policy))
+                for _ in range(episode_count)
+            ]
         return [self.get_return(self.get_trajectory()) for _ in range(episode_count)]
-
-    # def hill_search(self, trial_count=300):
-    #     gains = [self.get_average_gain()]
-    #     max_gain = gains[-1]
-    #     for i in range(trial_count):
-    #         cur_theta = self.theta
-    #         std_dev_matrix = self.sigma * np.eye(*self.theta.shape)
-    #         new_theta = np.random.multivariate_normal(self.theta, std_dev_matrix)
-    #         self.theta = new_theta
-    #         new_gain = self.get_average_gain()
-    #         gains.append(new_gain)
-    #         if new_gain < max_gain:
-    #             self.theta = cur_theta
-    #         elif new_gain > max_gain:
-    #             max_gain = new_gain
-    #         print("Trial", i, "Gain", new_gain, "Max Gain", max_gain)
-    #     return gains
 
     def hill_search(self, trial_count=300, epsilon=0.0001):
         pb = ProgressBar(
@@ -83,13 +71,20 @@ class Agent:
             pb.print_progress_bar(trial + 1)
         average_gains_per_trial = np.mean(gain_per_episode_matrix, axis=1)
         standard_deviation_gains_per_trial = np.std(gain_per_episode_matrix, axis=1)
-        return [average_gains_per_trial, standard_deviation_gains_per_trial]
+        average_gains_per_episode = np.mean(gain_per_episode_matrix, axis=0)
+        standard_deviation_gains_per_episode = np.std(gain_per_episode_matrix, axis=0)
+        return [average_gains_per_trial, standard_deviation_gains_per_trial], [
+            average_gains_per_episode,
+            standard_deviation_gains_per_episode,
+        ]
 
     def value_iteration(self, gamma=0.9, threshold=0.000001):
         # initialize V(s) with some random values but V(terminals) = 0
         V = np.random.rand(25)
         V[self.env.state_id[(4, 4)]] = 0
+        iteration_count = 0
         while True:
+            iteration_count += 1
             delta = 0
             for s in range(25):
                 if s == 24:
@@ -119,6 +114,7 @@ class Agent:
                 delta = max(delta, abs(v - V[s]))
             if delta < threshold:
                 break
+        print(f"Value iteration converged after {iteration_count} iterations")
         return V
 
     def get_optimal_policy(self, gamma=0.9):
